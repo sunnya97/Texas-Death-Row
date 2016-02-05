@@ -19,7 +19,7 @@ d3.json("texas.json", function(error, json) {
 });
 
 function makeMap() {
-    var width = ($("#texas-map").width());
+    var width = Math.min(600, ($("#texas-map").width())*0.8);
     var height = width;
 
 
@@ -33,7 +33,7 @@ function makeMap() {
         .projection(projection
             .center([(-106.64546828199987 - 93.50803251699989) / 2, (25.837048983000045 + 36.500568855000154) / 2])
             .translate([width / 2, height / 2])
-            .scale(1500));
+            .scale(width*5));
 
     var g = svg.append("g");
 
@@ -45,8 +45,14 @@ function makeMap() {
             .enter()
             .append("path")
             .attr("d", path);
+            //.style("fill", );
 
     });
+}
+
+function matchCounties(d) {
+    var width = Math.min(600, ($("#texas-map").width())*0.8);
+    var height = width;
 }
 
 
@@ -241,7 +247,7 @@ function find_common_words(d) {
 
 
 function generatecloud(dataset) {
-    d3.layout.cloud().size([$("#word-cloud").width(), 400])
+    d3.layout.cloud().size([$("#word-cloud").width()*0.8, 400])
         .words(find_common_words(dataset))
         .rotate(function() {
             return 0;
