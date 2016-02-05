@@ -14,12 +14,12 @@ d3.json("texas.json", function(error, json) {
     generatecloud(dataset);
     generate_random_quotes(dataset);
     generateracepie(dataset);
-    makeMap();
+    makeMap(dataset);
 
 });
 
-function makeMap() {
-    var width = Math.min(600, ($("#texas-map").width())*0.8);
+function makeMap(d) {
+    var width = Math.min(600, ($("#texas-map").width()) * 0.8);
     var height = width;
 
 
@@ -33,26 +33,37 @@ function makeMap() {
         .projection(projection
             .center([(-106.64546828199987 - 93.50803251699989) / 2, (25.837048983000045 + 36.500568855000154) / 2])
             .translate([width / 2, height / 2])
-            .scale(width*5));
+            .scale(width * 5));
 
     var g = svg.append("g");
 
     d3.json("texas-map.json", function(error, topology) {
-
+        matchCounties(d, topology)
         g.selectAll("path")
             .data(topojson.object(topology, topology.objects.tx_counties)
                 .geometries)
             .enter()
             .append("path")
             .attr("d", path);
-            //.style("fill", );
+        //.style("fill", );
 
     });
 }
 
-function matchCounties(d) {
-    var width = Math.min(600, ($("#texas-map").width())*0.8);
-    var height = width;
+function matchCounties(d, t) {
+    var county_names = {};
+
+    for (var i = 0; i < t.objects.tx_counties.geometries.length; i++) {
+        //console.log(t.objects.tx_counties.geometries[i].properties.COUNTY.slice(0,-7));
+        county_names[t.objects.tx_counties.geometries[i].properties.COUNTY.slice(0,-7)] = 0;
+    }
+
+    for (var j = 0; j < d.length; j++) {
+        if (d[j].County in county_names) {
+            county_names[d[j].County] += 1;
+        }
+    }
+    return county_names;
 }
 
 
@@ -247,7 +258,7 @@ function find_common_words(d) {
 
 
 function generatecloud(dataset) {
-    d3.layout.cloud().size([$("#word-cloud").width()*0.8, 400])
+    d3.layout.cloud().size([$("#word-cloud").width() * 0.8, 400])
         .words(find_common_words(dataset))
         .rotate(function() {
             return 0;
