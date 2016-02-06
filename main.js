@@ -16,20 +16,177 @@ d3.json("texas.json", function(error, json) {
     generateracepie(dataset);
     makeMap(dataset);
 
+    makeAgeGraph(dataset);
+    drawLineGraph(dataset);
 });
 
+function drawLineGraph(d) {
+    height = 400;
+    width = 400;
 
-function makeAgeGraph(d){
-    var width = Math.min(600, ($("#age-chart").width()) * 0.8);
-    var height = width;
+    perYear = getYears(d);
 
-    var svg = d3.select("#age-chart").append("svg")
-        .attr("width", width)
-        .attr("height", height);
+    listYears = [];
+    for (var y = 1982; y <= (new Date().getFullYear()); y++) {
+        listYears.push(y);
+    }
+
+    var x = d3.time.scale()
+        .domain(listYears)
+        .range([0, width]);
+
+    var y = d3.scale.linear()
+
+
+    .domain([0, Math.max.apply(null, Object.keys(perYear).map(function(key) {
+        return perYear[key];
+    }))])
+    .range([height, 0]);
+
+    var xAxis = d3.svg.axis()
+        .scale(x)
+        .orient("bottom");
+
+    var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left");
+
+    var line = d3.svg.line()
+        .x(function(a) {
+            return a;
+        })
+        .y(function(a) {
+            return perYear[a];
+        });
+
+    var svg = d3.select("time-graph").append("svg")
+        .attr("width", width + 60)
+        .attr("height", height + 60)
+        .append("g")
+        .attr("transform", "translate(" + 30 + "," + 30 + ")");
+
+    svg.append("path")
+        .attr("class", "line")
+        .attr("d", line);
+
+    // Add the X Axis
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+
+    // Add the Y Axis
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis);
+}
+
+function getYears(d) {
+
+    var years = d.map(function(a) {
+        return parseInt(a["Date"].slice(-4));
+    });
+
+    perYear = {};
+    for (var y = 1982; y <= (new Date().getFullYear()); y++) {
+        perYear[y] = 0;
+    }
+
+    for (var i = 0; i < years.length; i++) {
+        perYear[years[i]] += 1;
+    }
 
     
 
+    return perYear;
 }
+
+
+
+
+function getAgeData(d) {
+    return d.map(function(c) {
+        return parseInt(c["Age"]);
+    });
+}
+
+function makeAgeGraph(d) {
+    var margin = {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 30
+    };
+    var width = Math.min(600, ($("#age-chart").width()) * 0.8) - margin.left - margin.right;
+    var height = Math.min(600, ($("#age-chart").width()) * 0.8) - margin.top - margin.bottom;
+
+    values = getAgeData(d);
+
+    var x = d3.scale.linear()
+        .domain([0, (d3.max(values) - d3.min(values))])
+        .range([0, width]);
+
+    var x2 = d3.scale.linear()
+        .domain([d3.min(values), d3.max(values)])
+        .range([0, width]);
+
+
+
+    var data = d3.layout.histogram()
+        .bins(x2.ticks(30))
+        (values);
+
+    var y = d3.scale.linear()
+        .domain([0, d3.max(data, function(d) {
+            return d.y;
+        })])
+        .range([height, 0]);
+
+    var xAxis = d3.svg.axis()
+        .scale(x2)
+        .orient("bottom");
+
+    var yAxis = d3.svg.axis()
+        .scale(y)
+        .ticks(8)
+        .orient("left");
+
+
+
+    var svg = d3.select("#age-chart").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var bar = svg.selectAll(".bar")
+        .data(data)
+        .enter()
+        .append("g")
+        .attr("class", "bar")
+        .attr("transform", function(d) {
+            return "translate(" + x2(d.x) + "," + y(d.y) + ")";
+        });
+
+    bar.append("rect")
+        .attr("x", 1)
+        .attr("width", x(data[0].dx) - 1)
+        .attr("height", function(d) {
+            return height - y(d.y);
+        });
+
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+
+    svg.append("g")
+        .attr("class", "y axis")
+        .attr("transform", "translate(0,0)")
+        .call(yAxis);
+}
+
+
 
 
 function makeMap(d) {
@@ -53,14 +210,16 @@ function makeMap(d) {
     var g = svg.append("g");
 
     d3.json("texas-map.json", function(error, topology) {
-        
+
         county_nums = matchCounties(d, topology);
 
         console.log();
 
         var color = d3.scale.linear()
-        .domain([0, Math.max.apply( null, Object.keys(county_nums).map(function ( key ) { return county_nums[key]; }) )/4])
-        .range(["#F4C2C2", "#701C1C"]);
+            .domain([0, Math.max.apply(null, Object.keys(county_nums).map(function(key) {
+                return county_nums[key];
+            })) / 4])
+            .range(["#F4C2C2", "#701C1C"]);
 
         //console.log(county_nums);
 
@@ -295,14 +454,15 @@ function find_common_words(d) {
 
 
 function generatecloud(dataset) {
-    d3.layout.cloud().size([$("#word-cloud").width() * 0.8, 400])
+    var height = Math.min(600, ($("#word-cloud").width()) * 0.8);
+    d3.layout.cloud().size([$("#word-cloud").width() * 0.8, height])
         .words(find_common_words(dataset))
         .rotate(function() {
             return 0;
         })
         .font("Impact")
         .fontSize(function(d) {
-            return 10 + d.size / 5;
+            return 12 + d.size / 5;
         })
         .on("end", drawcloud)
         .start();
@@ -310,10 +470,11 @@ function generatecloud(dataset) {
 
 
     function drawcloud(words) {
+
         var cloud = d3.select("#word-cloud").append("svg")
             .attr("width", $("#word-cloud").width())
             .append("g")
-            .attr("transform", "translate(" + $("#word-cloud").width() / 2 + "," + (400 / 2) + ")")
+            .attr("transform", "translate(" + $("#word-cloud").width() / 2 + "," + (height / 2) + ")")
             .selectAll("text")
             .data(words)
 
