@@ -18,9 +18,24 @@ d3.json("texas.json", function(error, json) {
 
 });
 
+
+function makeAgeGraph(d){
+    var width = Math.min(600, ($("#age-chart").width()) * 0.8);
+    var height = width;
+
+    var svg = d3.select("#age-chart").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    
+
+}
+
+
 function makeMap(d) {
     var width = Math.min(600, ($("#texas-map").width()) * 0.8);
     var height = width;
+
 
 
     var svg = d3.select("#texas-map").append("svg")
@@ -38,14 +53,35 @@ function makeMap(d) {
     var g = svg.append("g");
 
     d3.json("texas-map.json", function(error, topology) {
-        matchCounties(d, topology)
-        g.selectAll("path")
+        
+        county_nums = matchCounties(d, topology);
+
+        console.log();
+
+        var color = d3.scale.linear()
+        .domain([0, Math.max.apply( null, Object.keys(county_nums).map(function ( key ) { return county_nums[key]; }) )/4])
+        .range(["#F4C2C2", "#701C1C"]);
+
+        //console.log(county_nums);
+
+        //console.log(JSON.stringify(topojson.object(topology, topology.objects.tx_counties).geometries[0]["properties"]["COUNTY"]));
+
+
+        $.each(topojson.object(topology, topology.objects.tx_counties).geometries, function(i, county) {
+            svg.append("path")
+                .datum(county)
+                .attr("d", path)
+                .attr("fill", color(county_nums[county["properties"]["COUNTY"]]));
+        });
+
+        /*g.selectAll("path")
             .data(topojson.object(topology, topology.objects.tx_counties)
                 .geometries)
             .enter()
             .append("path")
-            .attr("d", path);
-        //.style("fill", );
+            .attr("d", path)
+            .attr("fill", color(i));
+        //.style("fill", );*/
 
     });
 }
@@ -55,12 +91,13 @@ function matchCounties(d, t) {
 
     for (var i = 0; i < t.objects.tx_counties.geometries.length; i++) {
         //console.log(t.objects.tx_counties.geometries[i].properties.COUNTY.slice(0,-7));
-        county_names[t.objects.tx_counties.geometries[i].properties.COUNTY.slice(0,-7)] = 0;
+        county_names[t.objects.tx_counties.geometries[i].properties.COUNTY] = 0;
     }
 
+
     for (var j = 0; j < d.length; j++) {
-        if (d[j].County in county_names) {
-            county_names[d[j].County] += 1;
+        if ((d[j].County + " County") in county_names) {
+            county_names[(d[j].County + " County")] += 1;
         }
     }
     return county_names;
