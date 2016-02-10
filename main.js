@@ -32,16 +32,19 @@ function drawLineGraph(d) {
     }
 
     var x = d3.time.scale()
-        .domain(listYears)
+        .domain([1982, (new Date().getFullYear())])
         .range([0, width]);
 
+        //.domain([1982, (new Date().getFullYear())])
+
+    console.log(d3.time.years(1982, 2016));
+
+
     var y = d3.scale.linear()
-
-
-    .domain([0, Math.max.apply(null, Object.keys(perYear).map(function(key) {
-        return perYear[key];
-    }))])
-    .range([height, 0]);
+        .domain([0, d3.max(listYears.map(function(year) {
+            return perYear[year];
+        }))])
+        .range([height, 0]);
 
     var xAxis = d3.svg.axis()
         .scale(x)
@@ -53,19 +56,20 @@ function drawLineGraph(d) {
 
     var line = d3.svg.line()
         .x(function(a) {
-            return a;
+            return x(a);
         })
         .y(function(a) {
-            return perYear[a];
+            return y(perYear[a]);
         });
 
-    var svg = d3.select("time-graph").append("svg")
+    var svg = d3.select("#time-graph").append("svg")
         .attr("width", width + 60)
         .attr("height", height + 60)
         .append("g")
         .attr("transform", "translate(" + 30 + "," + 30 + ")");
 
     svg.append("path")
+        .datum(listYears)
         .attr("class", "line")
         .attr("d", line);
 
@@ -83,9 +87,13 @@ function drawLineGraph(d) {
 
 function getYears(d) {
 
+    var format = d3.time.format("%m/%-d/%Y")
+
     var years = d.map(function(a) {
-        return parseInt(a["Date"].slice(-4));
+        return d3.time.year.floor(format.parse(a["Date"]))
     });
+
+    console.log(d3.time.year.range(d3.min(years),d3.max(years)));
 
     perYear = {};
     for (var y = 1982; y <= (new Date().getFullYear()); y++) {
@@ -95,8 +103,6 @@ function getYears(d) {
     for (var i = 0; i < years.length; i++) {
         perYear[years[i]] += 1;
     }
-
-    
 
     return perYear;
 }
