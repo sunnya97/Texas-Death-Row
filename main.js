@@ -21,30 +21,32 @@ d3.json("texas.json", function(error, json) {
 });
 
 function drawLineGraph(d) {
-    height = 400;
-    width = 400;
+    left_margin = 30;
+    top_margin = 30;
 
-    perYear = getYears(d);
+    var width = Math.min(600, ($("#time-graph").width()) * 0.8);
+    var height = Math.min(600, ($("#time-graph").width()) * 0.8);
 
-    listYears = [];
-    for (var y = 1982; y <= (new Date().getFullYear()); y++) {
-        listYears.push(y);
-    }
+    r = getYears(d);
+
+    allYears = r[0];
+    perYear = r[1];
+
+
+
+    listOfYears = d3.time.year.range(d3.min(allYears), d3.max(allYears));
+
 
     var x = d3.time.scale()
-        .domain([1982, (new Date().getFullYear())])
-        .range([0, width]);
-
-        //.domain([1982, (new Date().getFullYear())])
-
-    console.log(d3.time.years(1982, 2016));
+        .domain([d3.min(listOfYears), d3.max(listOfYears)])
+        .range([0, width - left_margin]);
 
 
     var y = d3.scale.linear()
-        .domain([0, d3.max(listYears.map(function(year) {
+        .domain([0, d3.max(listOfYears.map(function(year) {
             return perYear[year];
         }))])
-        .range([height, 0]);
+        .range([height - top_margin, 0]);
 
     var xAxis = d3.svg.axis()
         .scale(x)
@@ -63,48 +65,67 @@ function drawLineGraph(d) {
         });
 
     var svg = d3.select("#time-graph").append("svg")
-        .attr("width", width + 60)
-        .attr("height", height + 60)
+        .attr("width", width)
+        .attr("height", height + top_margin)
         .append("g")
-        .attr("transform", "translate(" + 30 + "," + 30 + ")");
+        .attr("transform", "translate(" + left_margin + "," + top_margin + ")");
 
     svg.append("path")
-        .datum(listYears)
+        .datum(listOfYears)
         .attr("class", "line")
         .attr("d", line);
 
     // Add the X Axis
     svg.append("g")
         .attr("class", "x axis")
-        .attr("transform", "translate(0," + height + ")")
+        .attr("transform", "translate(0," + (height - top_margin) + ")")
         .call(xAxis);
 
     // Add the Y Axis
     svg.append("g")
         .attr("class", "y axis")
         .call(yAxis);
+
+    svg.append("text")
+        .attr("class", "x label")
+        .attr("text-anchor", "end")
+        .attr("x", width - left_margin)
+        .attr("y", height - top_margin - 6)
+        .text("Year");
+
+    svg.append("text")
+        .attr("class", "y label")
+        .attr("text-anchor", "end")
+        .attr("y", 6)
+        .attr("dy", ".75em")
+        .attr("transform", "rotate(-90)")
+        .text("Executions");
 }
 
 function getYears(d) {
 
-    var format = d3.time.format("%m/%-d/%Y")
+    var format = d3.time.format("%m/%-d/%Y");
 
     var years = d.map(function(a) {
         return d3.time.year.floor(format.parse(a["Date"]))
     });
 
-    console.log(d3.time.year.range(d3.min(years),d3.max(years)));
+    //allYears = d3.time.year.range(d3.min(years),d3.max(years));
+
+    allYears = d3.time.year.range(d3.min(years), new Date(d3.max(years)).setDate(2));
 
     perYear = {};
-    for (var y = 1982; y <= (new Date().getFullYear()); y++) {
-        perYear[y] = 0;
+
+    for (var i = 0; i < allYears.length; i++) {
+
+        perYear[allYears[i]] = 0;
     }
 
-    for (var i = 0; i < years.length; i++) {
-        perYear[years[i]] += 1;
+    for (var j = 0; j < years.length; j++) {
+        perYear[years[j]] += 1;
     }
 
-    return perYear;
+    return [allYears, perYear];
 }
 
 
@@ -117,24 +138,21 @@ function getAgeData(d) {
 }
 
 function makeAgeGraph(d) {
-    var margin = {
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 30
-    };
-    var width = Math.min(600, ($("#age-chart").width()) * 0.8) - margin.left - margin.right;
-    var height = Math.min(600, ($("#age-chart").width()) * 0.8) - margin.top - margin.bottom;
+    var left_margin = 30;
+    var top_margin = 30;
+
+    var width = Math.min(400, ($("#age-chart").width()) * 0.8);
+    var height = Math.min(400, ($("#age-chart").width()) * 0.8);
 
     values = getAgeData(d);
 
     var x = d3.scale.linear()
-        .domain([0, (d3.max(values) - d3.min(values))])
-        .range([0, width]);
+        .domain([0, (d3.max(values) - d3.min(values) + 4)])
+        .range([0, width - left_margin]);
 
     var x2 = d3.scale.linear()
-        .domain([d3.min(values), d3.max(values)])
-        .range([0, width]);
+        .domain([d3.min(values), d3.max(values) + 4])
+        .range([0, width - left_margin]);
 
 
 
@@ -146,7 +164,7 @@ function makeAgeGraph(d) {
         .domain([0, d3.max(data, function(d) {
             return d.y;
         })])
-        .range([height, 0]);
+        .range([height - top_margin, 0]);
 
     var xAxis = d3.svg.axis()
         .scale(x2)
@@ -160,10 +178,10 @@ function makeAgeGraph(d) {
 
 
     var svg = d3.select("#age-chart").append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
+        .attr("width", width)
+        .attr("height", height)
         .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        .attr("transform", "translate(" + left_margin + ", 0)");
 
     var bar = svg.selectAll(".bar")
         .data(data)
@@ -178,25 +196,40 @@ function makeAgeGraph(d) {
         .attr("x", 1)
         .attr("width", x(data[0].dx) - 1)
         .attr("height", function(d) {
-            return height - y(d.y);
+            return height - top_margin - y(d.y);
         });
 
     svg.append("g")
         .attr("class", "x axis")
-        .attr("transform", "translate(0," + height + ")")
+        .attr("transform", "translate(0," + (height - top_margin) + ")")
         .call(xAxis);
 
     svg.append("g")
         .attr("class", "y axis")
         .attr("transform", "translate(0,0)")
         .call(yAxis);
+
+    svg.append("text")
+        .attr("class", "x label")
+        .attr("text-anchor", "end")
+        .attr("x", width - left_margin)
+        .attr("y", height - top_margin - 6)
+        .text("Age");
+
+    svg.append("text")
+        .attr("class", "y label")
+        .attr("text-anchor", "end")
+        .attr("y", 6)
+        .attr("dy", ".75em")
+        .attr("transform", "rotate(-90)")
+        .text("Executions");
 }
 
 
 
 
 function makeMap(d) {
-    var width = Math.min(600, ($("#texas-map").width()) * 0.8);
+    var width = Math.min(400, ($("#texas-map").width()) * 0.7);
     var height = width;
 
 
@@ -209,7 +242,7 @@ function makeMap(d) {
 
     var path = d3.geo.path()
         .projection(projection
-            .center([(-106.64546828199987 - 93.50803251699989) / 2, (25.837048983000045 + 36.500568855000154) / 2])
+            .center([(-106.64546828199987 - 93.50803251699989) / 2 -4, (25.837048983000045 + 36.500568855000154) / 2])
             .translate([width / 2, height / 2])
             .scale(width * 5));
 
@@ -460,7 +493,7 @@ function find_common_words(d) {
 
 
 function generatecloud(dataset) {
-    var height = Math.min(600, ($("#word-cloud").width()) * 0.8);
+    var height = d3.min([600, ($("#word-cloud").width()) * 0.8]);
     d3.layout.cloud().size([$("#word-cloud").width() * 0.8, height])
         .words(find_common_words(dataset))
         .rotate(function() {
@@ -478,7 +511,8 @@ function generatecloud(dataset) {
     function drawcloud(words) {
 
         var cloud = d3.select("#word-cloud").append("svg")
-            .attr("width", $("#word-cloud").width())
+            .attr("width", $("#word-cloud").width() * 0.8)
+            .attr("height", height)
             .append("g")
             .attr("transform", "translate(" + $("#word-cloud").width() / 2 + "," + (height / 2) + ")")
             .selectAll("text")
