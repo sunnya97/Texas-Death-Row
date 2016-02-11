@@ -18,6 +18,8 @@ d3.json("texas.json", function(error, json) {
 
     makeAgeGraph(dataset);
     drawLineGraph(dataset);
+
+    // console.log(JSON.stringify(dataset));
 });
 
 function drawLineGraph(d) {
@@ -74,6 +76,34 @@ function drawLineGraph(d) {
         .datum(listOfYears)
         .attr("class", "line")
         .attr("d", line);
+
+    var tip = d3.tip()
+        .attr('class', 'd3-tip')
+        .offset([-10, 0])
+        .html(function(a) {
+            return "<strong> Year: " + a.getFullYear() + "<br>Executions: " + perYear[a] +
+                "</strong>";
+        });
+
+
+    svg.call(tip);
+
+    svg.selectAll(".dot")
+        .data(listOfYears)
+        .enter().append("circle")
+        .attr('class', 'datapoint')
+        .attr('cx', function(a) {
+            return x(a);
+        })
+        .attr('cy', function(a) {
+            return y(perYear[a]);
+        })
+        .attr('r', 1)
+        .attr('fill', 'white')
+        .attr('stroke', 'steelblue')
+        .attr('stroke-width', '3')
+        .on('mouseover', tip.show)
+        .on('mouseout', tip.hide);
 
     // Add the X Axis
     svg.append("g")
@@ -175,13 +205,23 @@ function makeAgeGraph(d) {
         .ticks(8)
         .orient("left");
 
-
-
     var svg = d3.select("#age-chart").append("svg")
         .attr("width", width)
         .attr("height", height)
         .append("g")
         .attr("transform", "translate(" + left_margin + ", 0)");
+
+
+    var tip = d3.tip()
+        .attr('class', 'd3-tip')
+        .offset([-10, 0])
+        .html(function(a) {
+            return "<strong> Age(s): " + a.getUnique() + "<br>Executions: " + a.length +
+                "</strong>";
+        });
+
+
+    svg.call(tip);
 
     var bar = svg.selectAll(".bar")
         .data(data)
@@ -190,6 +230,11 @@ function makeAgeGraph(d) {
         .attr("class", "bar")
         .attr("transform", function(d) {
             return "translate(" + x2(d.x) + "," + y(d.y) + ")";
+        })
+        .on('mouseover', tip.show)
+        .on('mouseout', tip.hide)
+        .on("click", function(a) {
+            redoOnAge(d, a.getUnique());
         });
 
     bar.append("rect")
@@ -242,7 +287,7 @@ function makeMap(d) {
 
     var path = d3.geo.path()
         .projection(projection
-            .center([(-106.64546828199987 - 93.50803251699989) / 2 -4, (25.837048983000045 + 36.500568855000154) / 2])
+            .center([(-106.64546828199987 - 93.50803251699989) / 2 - 4, (25.837048983000045 + 36.500568855000154) / 2])
             .translate([width / 2, height / 2])
             .scale(width * 5));
 
@@ -251,8 +296,6 @@ function makeMap(d) {
     d3.json("texas-map.json", function(error, topology) {
 
         county_nums = matchCounties(d, topology);
-
-        console.log();
 
         var color = d3.scale.linear()
             .domain([0, Math.max.apply(null, Object.keys(county_nums).map(function(key) {
@@ -265,11 +308,23 @@ function makeMap(d) {
         //console.log(JSON.stringify(topojson.object(topology, topology.objects.tx_counties).geometries[0]["properties"]["COUNTY"]));
 
 
+        var tip = d3.tip()
+            .attr('class', 'd3-tip')
+            .offset([-10, 0])
+            .html(function(a) {
+                return "<strong>" + a["properties"]["COUNTY"] + "<br>Executions: "+ county_nums[a["properties"]["COUNTY"]] +"</strong>";
+            });
+
+
+        svg.call(tip);
+
         $.each(topojson.object(topology, topology.objects.tx_counties).geometries, function(i, county) {
             svg.append("path")
                 .datum(county)
                 .attr("d", path)
-                .attr("fill", color(county_nums[county["properties"]["COUNTY"]]));
+                .attr("fill", color(county_nums[county["properties"]["COUNTY"]]))
+                .on('mouseover', tip.show)
+                .on('mouseout', tip.hide);
         });
 
         /*g.selectAll("path")
@@ -366,14 +421,22 @@ function generateracepie(d) {
     var total_num = d.length;
     var save = sort_races(d);
 
-    console.log(JSON.stringify(save));
-
     var svg = d3.select('#pie-graph')
         .append('svg')
         .attr('width', width)
         .attr('height', height)
         .append('g')
         .attr('transform', 'translate(' + ($("#pie-graph").width() / 2) + ',' + (height / 2) + ')');
+
+    var tip = d3.tip()
+        .attr('class', 'd3-tip')
+        .offset([100, 0])
+        .html(function(a) {
+            return "<strong> Race: " + a.data.text + "<br>Executions: " + a.data.size + " </strong>";
+        });
+
+
+    svg.call(tip);
 
     var arc = d3.svg.arc()
         .innerRadius(innerRadius)
@@ -393,6 +456,11 @@ function generateracepie(d) {
         .append('path')
         .attr('fill', function(d, i) {
             return color(d.data.text);
+        })
+        .on('mouseover', tip.show)
+        .on('mouseout', tip.hide)
+        .on("click", function(a) {
+            redoOnRace(d, a["data"]["text"]);
         })
         .transition().delay(function(d, i) {
             return i * 500;
@@ -435,6 +503,42 @@ function generateracepie(d) {
         });
 }
 
+function redoOnRace(dataset, race) {
+
+    dataset = dataset.filter(function(a) {
+        return a["Race"] == race;
+    });
+
+    d3.selectAll("svg").remove();
+
+
+    generatecloud(dataset);
+    generate_random_quotes(dataset);
+    generateracepie(dataset);
+    makeMap(dataset);
+
+    makeAgeGraph(dataset);
+    drawLineGraph(dataset);
+}
+
+function redoOnAge(dataset, ages) {
+
+    dataset = dataset.filter(function(a) {
+        return ages.includes(a["Age"]);
+    });
+
+    d3.selectAll("svg").remove();
+
+
+    generatecloud(dataset);
+    generate_random_quotes(dataset);
+    generateracepie(dataset);
+    makeMap(dataset);
+
+    makeAgeGraph(dataset);
+    drawLineGraph(dataset);
+}
+
 function sort_races(d) {
     racecount = {};
 
@@ -447,7 +551,6 @@ function sort_races(d) {
     }
 
     return racecount;
-
 }
 
 
@@ -488,27 +591,38 @@ function find_common_words(d) {
         }
     }
 
-    return sortObject(wordcounts).reverse();
+    return wordcounts;
 };
 
 
 function generatecloud(dataset) {
     var height = d3.min([600, ($("#word-cloud").width()) * 0.8]);
-    d3.layout.cloud().size([$("#word-cloud").width() * 0.8, height])
-        .words(find_common_words(dataset))
+
+    var wordList = find_common_words(dataset);
+
+    words = d3.layout.cloud().size([$("#word-cloud").width() * 0.8, height])
+        .words(sortObject(wordList).reverse())
         .rotate(function() {
             return 0;
         })
         .font("Impact")
         .fontSize(function(d) {
-            return 12 + d.size / 5;
+            return (d.size / 5 + 12);
         })
         .on("end", drawcloud)
         .start();
 
 
 
+
     function drawcloud(words) {
+
+        var tip = d3.tip()
+            .attr('class', 'd3-tip')
+            .offset([-10, 0])
+            .html(function(a) {
+                return "<strong> Word: " + a.text + "<br>Occurences: " + wordList[a.text] + "</strong>";
+            });
 
         var cloud = d3.select("#word-cloud").append("svg")
             .attr("width", $("#word-cloud").width() * 0.8)
@@ -516,7 +630,9 @@ function generatecloud(dataset) {
             .append("g")
             .attr("transform", "translate(" + $("#word-cloud").width() / 2 + "," + (height / 2) + ")")
             .selectAll("text")
-            .data(words)
+            .data(words);
+
+
 
 
         cloud.enter().append("text")
@@ -528,7 +644,10 @@ function generatecloud(dataset) {
             .attr('font-size', 1)
             .text(function(d) {
                 return d.text;
-            });
+            })
+            .call(tip)
+            .on('mouseover', tip.show)
+            .on('mouseout', tip.hide);
 
         cloud.transition()
             .duration(600)
@@ -549,3 +668,16 @@ function generatecloud(dataset) {
             .remove();
     };
 };
+
+Array.prototype.getUnique = function() {
+    var u = {},
+        a = [];
+    for (var i = 0, l = this.length; i < l; ++i) {
+        if (u.hasOwnProperty(this[i])) {
+            continue;
+        }
+        a.push(this[i]);
+        u[this[i]] = 1;
+    }
+    return a;
+}

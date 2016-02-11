@@ -24,6 +24,19 @@ p {
     line-height: 1.5em;
 }
 
+.datapoint:hover {
+    r: 6;
+}
+
+.d3-tip {
+        line-height: 1;
+        font-weight: bold;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        border-radius: 2px;
+}
+
 #quoteblock {
     font-family: 'Cardo', serif;
     font-size: 60px;
@@ -51,18 +64,17 @@ rect {
 
 .axis path,
 .axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
 }
 
-
 .line {
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 1.5px;
+    fill: none;
+    stroke: steelblue;
+    stroke-width: 1.5px;
 }
 
 .bar {
-  fill: maroon;
+    fill: maroon;
 }
