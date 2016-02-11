@@ -1,12 +1,28 @@
 var fill = d3.scale.category20();
 var dataset = [];
+var format = d3.time.format("%m/%-d/%Y");
+var cachedJSON;
+
+var wordScaler;
+
+$(document).ready(function() {
+    // Adds functionality to the reset button
+    $("#resetButton").click(function() {
+        resetVisualizations();
+    });
+
+});
 
 d3.json("texas.json", function(error, json) {
     if (error) {
         alert(error);
     }
 
+    cachedJSON = json;
+
     var dataset = json;
+
+    wordScaler = sortObject(find_common_words(cachedJSON)).length;
 
     //c.log(JSON.stringify(find_common_words(dataset)));
 
@@ -103,7 +119,10 @@ function drawLineGraph(d) {
         .attr('stroke', 'steelblue')
         .attr('stroke-width', '3')
         .on('mouseover', tip.show)
-        .on('mouseout', tip.hide);
+        .on('mouseout', tip.hide)
+        .on("click", function(a) {
+            redoOnYear(d, a.getFullYear());
+        });
 
     // Add the X Axis
     svg.append("g")
@@ -133,8 +152,6 @@ function drawLineGraph(d) {
 }
 
 function getYears(d) {
-
-    var format = d3.time.format("%m/%-d/%Y");
 
     var years = d.map(function(a) {
         return d3.time.year.floor(format.parse(a["Date"]))
@@ -312,7 +329,7 @@ function makeMap(d) {
             .attr('class', 'd3-tip')
             .offset([-10, 0])
             .html(function(a) {
-                return "<strong>" + a["properties"]["COUNTY"] + "<br>Executions: "+ county_nums[a["properties"]["COUNTY"]] +"</strong>";
+                return "<strong>" + a["properties"]["COUNTY"] + "<br>Executions: " + county_nums[a["properties"]["COUNTY"]] + "</strong>";
             });
 
 
@@ -324,7 +341,10 @@ function makeMap(d) {
                 .attr("d", path)
                 .attr("fill", color(county_nums[county["properties"]["COUNTY"]]))
                 .on('mouseover', tip.show)
-                .on('mouseout', tip.hide);
+                .on('mouseout', tip.hide)
+                .on("click", function(a) {
+                    redoOnCounty(d, a["properties"]["COUNTY"])
+                });
         });
 
         /*g.selectAll("path")
@@ -524,11 +544,88 @@ function redoOnRace(dataset, race) {
 function redoOnAge(dataset, ages) {
 
     dataset = dataset.filter(function(a) {
-        return ages.includes(a["Age"]);
+        return ages.includes(parseInt(a["Age"]));
     });
 
     d3.selectAll("svg").remove();
 
+
+    generatecloud(dataset);
+    generate_random_quotes(dataset);
+    generateracepie(dataset);
+    makeMap(dataset);
+
+    makeAgeGraph(dataset);
+    drawLineGraph(dataset);
+}
+
+function redoOnWord(dataset, word) {
+
+    var wordsplit;
+
+    dataset = dataset.filter(function(a) {
+        wordsplit = a["Last Statement"].toUpperCase().match(/\w+/g);
+        return wordsplit.includes(word);
+        //        return ages.includes(word);
+    });
+
+    d3.selectAll("svg").remove();
+
+
+    generatecloud(dataset);
+    generate_random_quotes(dataset);
+    generateracepie(dataset);
+    makeMap(dataset);
+
+    makeAgeGraph(dataset);
+    drawLineGraph(dataset);
+}
+
+function redoOnYear(dataset, year) {
+
+    dataset = dataset.filter(function(a) {
+
+        return d3.time.year.floor(format.parse(a["Date"])).getFullYear() == year;
+    });
+
+
+
+    d3.selectAll("svg").remove();
+
+
+    generatecloud(dataset);
+    generate_random_quotes(dataset);
+    generateracepie(dataset);
+    makeMap(dataset);
+
+    makeAgeGraph(dataset);
+    drawLineGraph(dataset);
+}
+
+function redoOnCounty(dataset, county) {
+
+    dataset = dataset.filter(function(a) {
+        return a["County"] == county.slice(0, -7);
+    });
+
+
+
+    d3.selectAll("svg").remove();
+
+
+    generatecloud(dataset);
+    generate_random_quotes(dataset);
+    generateracepie(dataset);
+    makeMap(dataset);
+
+    makeAgeGraph(dataset);
+    drawLineGraph(dataset);
+}
+
+function resetVisualizations() {
+    var dataset = cachedJSON;
+
+    d3.selectAll("svg").remove();
 
     generatecloud(dataset);
     generate_random_quotes(dataset);
@@ -585,8 +682,10 @@ function find_common_words(d) {
         delete wordcounts[stop_words[k].toUpperCase()];
     }
 
+    var threshold = sortObject(wordcounts)[Math.floor(sortObject(wordcounts).length * 0.8)]["size"];
+
     for (var key in wordcounts) {
-        if (wordcounts[key] < 10) {
+        if (wordcounts[key] < threshold) {
             delete wordcounts[key];
         }
     }
@@ -600,14 +699,18 @@ function generatecloud(dataset) {
 
     var wordList = find_common_words(dataset);
 
+    wordListSorted = sortObject(wordList).reverse();
+
+    var scaleFactor = (wordScaler / wordListSorted.length);
+
     words = d3.layout.cloud().size([$("#word-cloud").width() * 0.8, height])
-        .words(sortObject(wordList).reverse())
+        .words(wordListSorted)
         .rotate(function() {
             return 0;
         })
         .font("Impact")
         .fontSize(function(d) {
-            return (d.size / 5 + 12);
+            return (d.size / 5 * scaleFactor + 12);
         })
         .on("end", drawcloud)
         .start();
@@ -633,8 +736,6 @@ function generatecloud(dataset) {
             .data(words);
 
 
-
-
         cloud.enter().append("text")
             .style("font-family", "Impact")
             .style("fill", function(d, i) {
@@ -647,7 +748,10 @@ function generatecloud(dataset) {
             })
             .call(tip)
             .on('mouseover', tip.show)
-            .on('mouseout', tip.hide);
+            .on('mouseout', tip.hide)
+            .on("click", function(a) {
+                redoOnWord(dataset, a.text);
+            });
 
         cloud.transition()
             .duration(600)
