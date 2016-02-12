@@ -121,6 +121,7 @@ function drawLineGraph(d) {
         .on('mouseover', tip.show)
         .on('mouseout', tip.hide)
         .on("click", function(a) {
+            tip.hide();
             redoOnYear(d, a.getFullYear());
         });
 
@@ -251,6 +252,7 @@ function makeAgeGraph(d) {
         .on('mouseover', tip.show)
         .on('mouseout', tip.hide)
         .on("click", function(a) {
+            tip.hide();
             redoOnAge(d, a.getUnique());
         });
 
@@ -343,6 +345,7 @@ function makeMap(d) {
                 .on('mouseover', tip.show)
                 .on('mouseout', tip.hide)
                 .on("click", function(a) {
+                    tip.hide();
                     redoOnCounty(d, a["properties"]["COUNTY"])
                 });
         });
@@ -480,6 +483,7 @@ function generateracepie(d) {
         .on('mouseover', tip.show)
         .on('mouseout', tip.hide)
         .on("click", function(a) {
+            tip.hide();
             redoOnRace(d, a["data"]["text"]);
         })
         .transition().delay(function(d, i) {
@@ -750,6 +754,7 @@ function generatecloud(dataset) {
             .on('mouseover', tip.show)
             .on('mouseout', tip.hide)
             .on("click", function(a) {
+                tip.hide();
                 redoOnWord(dataset, a.text);
             });
 
