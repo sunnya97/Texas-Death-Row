@@ -686,7 +686,9 @@ function find_common_words(d) {
         delete wordcounts[stop_words[k].toUpperCase()];
     }
 
-    var threshold = sortObject(wordcounts)[Math.floor(sortObject(wordcounts).length * 0.9)]["size"];
+    var listed = sortObject(wordcounts).reverse();
+
+    var threshold = listed[d3.min([160, listed.length - 1])]["size"];
 
     for (var key in wordcounts) {
         if (wordcounts[key] < threshold) {
